@@ -1,0 +1,6 @@
+{
+  "name": "FACEIT XLR - Облачное Настроение",
+  "description": "Стильное расширение для кастомизации FACEIT с живыми видео-фонами, Discord интеграцией, темной и светлой темой и современным интерфейсом",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
