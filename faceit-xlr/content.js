@@ -218,12 +218,12 @@ function classify(el) {
     return;
   }
 
-  const wide = r.width >= Math.max(470, innerWidth * .48);
+  const wide = r.width >= Math.min(380, innerWidth * .40);
   const highLayer = ['fixed', 'absolute', 'sticky'].includes(css.position) && Number(css.zIndex) >= 100;
   const large = largeOverlay(el, r);
   const overlay = el.matches(OVERLAYS) && large;
 
-  const fullScreen = r.width >= innerWidth * .9 && r.height >= innerHeight * .9;
+  const fullScreen = r.width >= innerWidth * .85 && r.height >= innerHeight * .85;
   if (outOfFlow(css) && fullScreen && solid && alpha < .85 && !gradient) return;
 
   if ((overlay || large && highLayer) && (solid || gradient)) {
@@ -243,11 +243,22 @@ function classify(el) {
     return;
   }
   if (!solid && !gradient) {
-    if (settings.style !== 'classic' && borderedBox(css) && r.width >= 120 && r.width <= 1400 && r.height >= 50 && r.height <= 700) mark(el, 'panel', css);
+    if (settings.style !== 'classic' && borderedBox(css) && r.width >= 140 && r.width <= 1400 && r.height >= 60 && r.height <= 700) {
+      const contentText = textOf(el, 100).trim();
+      const hasMedia = el.querySelector('img,svg,video,button,a,[role="button"]');
+      if (contentText.length >= 3 || hasMedia) mark(el, 'panel', css);
+    }
     return;
   }
 
-  const shell = el.id === '__next' || el.id === 'root' || r.width >= innerWidth * .48 && r.height >= innerHeight * .52;
+  const isMatchLobby = r.width >= 320 && r.height >= 180 &&
+    /queue|очередь|matchmaking|матчмейкинг|тип матча|match type/i.test(textOf(el, 600)) &&
+    (el.querySelector('button,a,[role="button"],[role="tab"],img,svg'));
+
+  const shell = el.id === '__next' || el.id === 'root' ||
+    el.matches('main,[role="main"],#main,article') ||
+    isMatchLobby ||
+    (r.width >= Math.min(420, innerWidth * .38) && r.height >= Math.min(220, innerHeight * .35));
   if (shell) { mark(el, 'shell', css); return; }
   if (focus && settings.focusEnabled) { mark(el, 'focus', css); return; }
   if (large && !wide || settings.focusEnabled && r.width >= 220 && r.height >= 110) { mark(el, 'focus', css); return; }
@@ -314,9 +325,12 @@ function decorate(el) {
   }
   if (r.width < 160 || r.height < 30) return;
 
-  if (r.width >= innerWidth * .4 && r.height >= 150 && r.height <= 1000) {
+  if (r.width >= Math.min(260, innerWidth * .25) && r.height >= 100 && r.height <= 1200) {
     const text = textOf(el, 3000);
-    if (/тип матча|match type/.test(text) && /найти матч|find match/.test(text)) panelCandidates.push(el);
+    if (/тип матча|match type|карты|maps|серверы|servers/i.test(text) &&
+        /найти матч|find match|античит|anticheat|queue|очередь|подбор|party|групп/i.test(text)) {
+      panelCandidates.push(el);
+    }
   }
   if (r.width >= 220 && r.width <= 640 && r.height >= 100 && r.height <= 380 && !decoratedAncestor(el, MODE)) {
     const text = textOf(el, 500);
@@ -372,7 +386,7 @@ function updateGroups() {
   for (const el of marked) {
     if (!el.isConnected || !TILES.has(surfaceType.get(el))) continue;
     const r = el.getBoundingClientRect();
-    if (r.width < 150 || r.height < 80) continue;
+    if (r.width < 40 || r.height < 25) continue;
     for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
       if (marked.has(p) && TILES.has(surfaceType.get(p))) next.add(p);
     }
@@ -808,7 +822,7 @@ function scan() {
   Writes.run();
   if (settings.hideInviteSlots) updateInviteSlots();
   else if (hiddenSlots.size) { for (const k of hiddenSlots) { Hold.add(k); k.removeAttribute(SLOT); } hiddenSlots.clear(); }
-  if (hasWallpaper && settings.style !== 'classic') updateGroups();
+  if (hasWallpaper) updateGroups();
   for (const el of marked) if (!el.isConnected) marked.delete(el);
   for (const el of decorated.keys()) if (!el.isConnected) decorated.delete(el);
   for (const el of filled) if (!el.isConnected) filled.delete(el);
@@ -902,7 +916,8 @@ ${w} [${COVERED}="b"]{background:transparent!important;box-shadow:none!important
     return `${common}
 ${settings.radius ? `${w} ${tiles}{border-radius:${settings.radius}px!important}` : ''}
 ${w} ${M('panel')},${w} ${M('card')}{background-color:rgba(15,18,25,.24)!important;background-image:none!important}
-${w} ${M('focus')}{background-color:rgba(12,16,24,var(--nu-tint))!important;background-image:none!important}`;
+${w} ${M('focus')}{background-color:rgba(12,16,24,var(--nu-tint))!important;background-image:none!important}
+${w} [${GROUP}]{background:transparent!important;background-color:transparent!important;background-image:none!important;backdrop-filter:none!important;box-shadow:none!important;border-color:transparent!important}`;
   }
   const glass = settings.style === 'glass';
   const outerRadius = settings.radius || 18;
@@ -923,7 +938,7 @@ ${w} ${block} ${tiles}:not([${GROUP}]){${inner};backdrop-filter:none!important;b
 ${w} ${M('card')}:hover{background-color:rgba(255,255,255,${glass ? .075 : .1})!important}
 ${w} :is(${M('shell')},${M('top')}){border-color:transparent!important}
 ${w} ${M('line')}{background-color:rgba(255,255,255,${glass ? .06 : .1})!important}
-${w} ${tiles}[${GROUP}][${GROUP}]{background:transparent!important;backdrop-filter:none!important;--nu-shadow:0 0 #0000;box-shadow:none!important;border-color:transparent!important}`;
+${w} [${GROUP}],${w} ${tiles}[${GROUP}]{background:transparent!important;background-color:transparent!important;background-image:none!important;backdrop-filter:none!important;--nu-shadow:0 0 #0000;box-shadow:none!important;border-color:transparent!important}`;
 }
 function updateCSS() {
   const a = `html[${ACTIVE}]`;
